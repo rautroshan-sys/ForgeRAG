@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-primary-bg text-primary-text font-sans antialiased;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Minimal button styles for the new design */
+  .btn-outline {
+    @apply px-4 py-2 text-xs font-mono tracking-wider border border-current hover:bg-primary-text hover:text-primary-bg transition-colors;
+  }
+  
+  .btn-dark {
+    @apply px-4 py-2 text-sm font-medium bg-white text-dark-bg hover:bg-gray-200 transition-colors rounded-sm;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { @apply bg-line-light rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
