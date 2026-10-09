@@ -90,7 +90,7 @@ export default function Query() {
             <textarea
               id="query-input"
               className="input-base h-28"
-              placeholder="What was the revenue growth last quarter?"
+              placeholder="When was Google founded and who are its founders?"
               value={queryText}
               onChange={(e) => setQueryText(e.target.value)}
               disabled={isLoading}

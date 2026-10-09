@@ -53,15 +53,31 @@ public class DocumentIngestController {
         }
 
         log.info("Chunked document into {} chunks, embedding each...", chunks.size());
+        int stored = 0;
+        int failed = 0;
         for (String chunk : chunks) {
-            float[] embedding = embeddingService.embed(chunk);
-            vectorRepository.save(chunk, embedding, SOURCE_DOC);
+            try {
+                float[] embedding = embeddingService.embed(chunk);
+                vectorRepository.save(chunk, embedding, SOURCE_DOC);
+                stored++;
+            } catch (Exception e) {
+                log.warn("Failed to embed/store chunk (skipping): {}", e.getMessage());
+                failed++;
+            }
         }
 
-        log.info("Ingestion complete: {} chunks stored", chunks.size());
+        if (stored == 0) {
+            // All chunks failed — surface as embedding error
+            throw new com.forgerag.exception.EmbeddingFailedException(
+                "All " + chunks.size() + " chunks failed to embed. Check API key and model availability.");
+        }
+
+        log.info("Ingestion complete: {}/{} chunks stored ({} failed)", stored, chunks.size(), failed);
         return ResponseEntity.ok(Map.of(
                 "status", "ingested",
-                "chunksStored", chunks.size(),
+                "chunksCreated", stored,       // key matches frontend expectation
+                "chunksStored", stored,        // keep for backwards compat
+                "chunksFailed", failed,
                 "sourceDoc", SOURCE_DOC
         ));
     }

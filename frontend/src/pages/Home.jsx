@@ -182,9 +182,9 @@ export default function Home() {
               <h4 className="text-[10px] font-mono font-bold text-dark-text/40 uppercase tracking-widest mb-3">Try an example</h4>
               <div className="flex flex-wrap gap-3">
                 {[
-                  'What was the company\'s revenue growth last quarter?',
-                  'Did the safety audit find any unresolved issues?',
-                  'Which policy governs vendor data retention?'
+                  'When was Google founded and who are its founders?',
+                  'What is the relationship between Google and Alphabet Inc.?',
+                  'What are Google\'s main products and services?'
                 ].map((q, i) => (
                   <button 
                     key={i} 
@@ -205,7 +205,7 @@ export default function Home() {
                    value={queryText}
                    onChange={(e) => setQueryText(e.target.value)}
                    className="flex-1 bg-transparent border border-dark-text/20 px-4 py-4 text-white focus:outline-none focus:border-brand/50 transition-colors text-sm"
-                   placeholder="What was the company's revenue growth last quarter?"
+                   placeholder="When was Google founded and who are its founders?"
                  />
                  <button 
                    type="submit" 
