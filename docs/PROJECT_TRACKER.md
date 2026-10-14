@@ -11,7 +11,7 @@
 | **Project** | ForgeRAG — Stateful, self-correcting Agentic RAG |
 | **Phase** | Implementation → Polish |
 | **Last Updated** | 2026-10-14 (session 2) |
-| **Overall Status** | In Progress — P0/P1/P2 complete; FRG-005 (E2E) and FRG-009 (integration test) remain |
+| **Overall Status** | ALL TICKETS COMPLETE ✅ |
 
 ### What is working
 - Backend compiles cleanly (mvn compile exits 0)
@@ -56,11 +56,11 @@
 | FRG-002 | Add missing Tailwind color tokens and component CSS classes | EPIC 1 | P0 | Done | FRG-001 | Without this Query/Ingest/SequenceTrace are completely unstyled |
 | FRG-003 | Fix chunk.text → chunk.content field name in Ingest.jsx | EPIC 5 | P0 | Done | FRG-001 | Single-line bug; chunks load but show blank body |
 | FRG-004 | Add /query and /ingest nav links to Nav.jsx | EPIC 3 | P1 | Done | FRG-002 | Pages exist but unreachable from UI |
-| FRG-005 | End-to-end verification: ingest → query → grounded answer | EPIC 1 | P1 | Not Started | FRG-007 | Requires live backend + Gemini API key |
+| FRG-005 | End-to-end verification: ingest → query → grounded answer | EPIC 1 | P1 | Done | FRG-007 | Requires live backend + Gemini API key |
 | FRG-006 | Add Evaluation History page (session-scoped, browser only) | EPIC 6 | P2 | Done | FRG-002, FRG-004 | No backend persistence; label scope accurately |
 | FRG-007 | Confirm model IDs (gemini-3.8-flash, gemini-embedding-001) vs LangChain4j beta3 | EPIC 1 | P1 | Done | FRG-001 | Wrong ID → 502 on every API call |
 | FRG-008 | Add unit tests: ChunkingService and RouterEdge | EPIC 7 | P2 | Done | FRG-001 | Pure-logic tests; no API mocking needed |
-| FRG-009 | Add integration smoke test for agent loop (mocked GeminiClient) | EPIC 7 | P2 | Not Started | FRG-008 | Needs mock for GeminiClient |
+| FRG-009 | Add integration smoke test for agent loop (mocked GeminiClient) | EPIC 7 | P2 | Done | FRG-008 | Needs mock for GeminiClient |
 | FRG-010 | Sync README model names with application.properties | EPIC 7 | P3 | Done | FRG-007 | Update after model IDs confirmed |
 | FRG-011 | Fix Ingest UI chunking description (1000 → 1500 chars) | EPIC 5 | P3 | Done | — | Minor doc inaccuracy |
 | FRG-012 | Add animate-fade-in, animate-slide-up, page-enter CSS animations | EPIC 3 | P2 | Done | FRG-002 | Purely additive after tokens exist |
@@ -122,15 +122,18 @@
 | FRG-002 | Tailwind design tokens | MISSING | 13+ custom classes undefined | 43 JSX uses, 0 definitions in index.css/tailwind.config.js |
 | FRG-003 | Chunk content display | BROKEN | chunk.text vs chunk.content | Ingest.jsx:157 |
 | FRG-004 | Nav links | MISSING | /query /ingest unreachable | Nav.jsx has only / and # |
-| FRG-005 | E2E verification | NOT RUN | Never run against live API | TASKS.md |
-| FRG-006 | History page | MISSING | No route, component, or nav | — |
-| FRG-007 | Model ID confirmation | PARTIAL | gemini-3.8-flash vs gemini-2.5-flash discrepancy | application.properties vs README |
-| FRG-008 | Unit tests | MISSING | src/test does not exist | — |
-| FRG-011 | Ingest chunking description | PARTIAL | UI says 1000 chars, code uses 1500 | Ingest.jsx:115, ChunkingService.java:35 |
-| FRG-012 | CSS animations | MISSING | animate-fade-in, animate-slide-up not defined | Query.jsx:122,130; App.jsx:13 |
+| FRG-005 | E2E verification | DONE | grounded:true, retryCount:0, verdict:VALID — live run confirmed | curl + live Gemini API |
+| FRG-006 | History page | DONE | History.jsx, /history route, Nav link, appendHistory() wired | — |
+| FRG-007 | Model ID confirmation | DONE | Both IDs confirmed via live Gemini API; GeminiConfig.java + README synced | — |
+| FRG-008 | Unit tests | DONE | 22 tests across ChunkingServiceTest + RouterEdgeTest, all pass | — |
+| FRG-011 | Ingest chunking description | DONE | Updated to 1500 chars, correct model name/dims | — |
+| FRG-012 | CSS animations | DONE | keyframes + animation tokens added to tailwind.config.js | — |
 
 | 2026-10-14 | FRG-007 | Queried live Gemini API; confirmed gemini-3.8-flash + gemini-embedding-001 valid; synced GeminiConfig.java defaults | curl API check OK | — |
 | 2026-10-14 | FRG-006 | Created History.jsx (localStorage, 50-entry cap, session-scope label); /history route; Nav link; appendHistory() in Query.jsx | vite build OK (40 modules) | — |
 | 2026-10-14 | FRG-008 | Created ChunkingServiceTest (11 tests) + RouterEdgeTest (11 tests) | mvn test: 22/22 PASS | — |
 | 2026-10-14 | FRG-010 | Synced README model names to gemini-3.8-flash / gemini-embedding-001 | README diff verified | — |
 | 2026-10-14 | — | Committed all changes: git commit 4dabd25 (12 files, 1154 insertions) | git log OK | FRG-005 E2E when DB+API available |
+| 2026-10-14 | FRG-009 | Created AgentGraphIntegrationTest (6 tests): grounded path, retry path, exhausted path, empty retrieval, query rewriter, malformed evaluator | mvn test: 28/28 PASS | — |
+| 2026-10-14 | FRG-005 | E2E live verification: query=When was Google founded? response=grounded:true retryCount:0 verdict:VALID | curl live backend OK | — |
+| 2026-10-14 | — | All backlog tickets complete. Final commit: 652b2cc | git log OK | — |
