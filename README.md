@@ -81,9 +81,9 @@ Full system diagrams (state machine flowchart + tech-stack/pipeline infographic)
 
 ```
 Client → API Controller → Retrieval Node → Generation Node → Evaluation Node → Router
-                                ▲                                                 │
-                                └──────────────── Query Rewriter Node ◄───────────┘
-                                                  (on hallucination)
+                               ▲                                                 │
+                               └──────────────── Query Rewriter Node ◄───────────┘
+                                                 (on hallucination)
 ```
 
 ---
@@ -93,16 +93,21 @@ Client → API Controller → Retrieval Node → Generation Node → Evaluation 
 | Layer | Choice |
 |---|---|
 | Core language | Java 17+ |
-| Framework | Spring Boot (REST APIs, dependency injection) |
-| AI orchestration | LangChain4j (API plumbing) + LangGraph4j (state machine / cyclic graphs) |
-| Database | PostgreSQL + `pgvector` extension |
-| Foundation model | Gemini API — used for both the Generator and Evaluator nodes |
+| Framework | Spring Boot 3.4 (REST APIs, dependency injection, validation) |
+| AI orchestration | LangChain4j `1.0.0-beta3` (API plumbing) + LangGraph4j `1.9.2` (state machine / cyclic graphs) |
+| Database | PostgreSQL 15+ + `pgvector` extension |
+| Foundation model | Gemini API — `gemini-3.8-flash` for Generator & Evaluator nodes; `gemini-embedding-001` for embeddings (3072 dims) |
 | Ingestion | Structure-aware / semantic chunking (preserves headers & paragraph hierarchy) |
 | Build tool | Maven |
+| Frontend | React 18 + Vite + Tailwind CSS (served separately on port 5173) |
 
 Key dependency coordinates (see `pom.xml`):
 
 ```xml
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j</artifactId>
+</dependency>
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-google-ai-gemini</artifactId>
@@ -112,12 +117,12 @@ Key dependency coordinates (see `pom.xml`):
     <artifactId>langgraph4j-core</artifactId>
 </dependency>
 <dependency>
-    <groupId>org.bsc.langgraph4j</groupId>
-    <artifactId>langgraph4j-langchain4j</artifactId>
-</dependency>
-<dependency>
     <groupId>com.pgvector</groupId>
     <artifactId>pgvector</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-core</artifactId>
 </dependency>
 ```
 
@@ -129,52 +134,78 @@ Key dependency coordinates (see `pom.xml`):
 forgerag/
 ├── pom.xml
 ├── README.md
+├── .env.example                              # environment variable template
 ├── docs/
 │   ├── industrial_rag_flowchart.pdf
 │   └── industrial_rag_infographic.pdf
-├── src/
-│   ├── main/
-│   │   ├── java/com/forgerag/
-│   │   │   ├── ForgeRagApplication.java
-│   │   │   ├── controller/
-│   │   │   │   └── QueryController.java          # API Controller
-│   │   │   ├── agent/
-│   │   │   │   ├── AgentState.java                 # shared state object
-│   │   │   │   ├── AgentGraphConfig.java            # builds the LangGraph4j StateGraph
-│   │   │   │   └── node/
-│   │   │   │       ├── RetrievalNode.java
-│   │   │   │       ├── GenerationNode.java
-│   │   │   │       ├── EvaluationNode.java
-│   │   │   │       ├── RouterEdge.java
-│   │   │   │       └── QueryRewriterNode.java
-│   │   │   ├── ingestion/
-│   │   │   │   ├── ChunkingService.java             # structure-aware / semantic chunking
-│   │   │   │   ├── EmbeddingService.java
-│   │   │   │   └── DocumentIngestController.java
-│   │   │   ├── repository/
-│   │   │   │   └── VectorRepository.java             # raw JDBC pgvector queries
-│   │   │   ├── client/
-│   │   │   │   └── GeminiClient.java
-│   │   │   ├── dto/
-│   │   │   │   ├── QueryRequest.java
-│   │   │   │   ├── QueryResponse.java
-│   │   │   │   └── EvaluationResult.java
-│   │   │   ├── config/
-│   │   │   │   ├── DataSourceConfig.java
-│   │   │   │   └── GeminiConfig.java
-│   │   │   └── exception/
-│   │   │       └── GlobalExceptionHandler.java
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       └── db/migration/
-│   │           └── V1__init_schema.sql               # table + vector_ip_ops index DDL
-│   └── test/
-│       └── java/com/forgerag/
-│           ├── agent/node/
-│           │   ├── RetrievalNodeTest.java
-│           │   ├── EvaluationNodeTest.java
-│           │   └── AgentGraphIntegrationTest.java     # tests the full retry loop
-│           └── ingestion/ChunkingServiceTest.java
+├── frontend/                                 # React + Vite + Tailwind CSS UI
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   ├── index.html
+│   └── src/
+│       ├── App.jsx                           # routing (Home / Query / Ingest)
+│       ├── main.jsx
+│       ├── index.css
+│       ├── api/                              # fetch wrappers for backend API
+│       ├── components/
+│       │   ├── Nav.jsx
+│       │   ├── Footer.jsx
+│       │   ├── SequenceTrace.jsx             # renders the retry loop visually
+│       │   └── VerdictBadge.jsx              # VALID / HALLUCINATED badge
+│       └── pages/
+│           ├── Home.jsx
+│           ├── Query.jsx                     # query form + response display
+│           └── Ingest.jsx                    # document ingestion form
+└── src/
+    ├── main/
+    │   ├── java/com/forgerag/
+    │   │   ├── ForgeRagApplication.java
+    │   │   ├── controller/
+    │   │   │   ├── QueryController.java      # POST /api/query
+    │   │   │   ├── ChunksController.java     # GET  /api/chunks
+    │   │   │   └── HealthController.java     # GET  /api/health
+    │   │   ├── agent/
+    │   │   │   ├── AgentState.java           # shared state object
+    │   │   │   ├── AgentGraphConfig.java     # builds the LangGraph4j StateGraph
+    │   │   │   └── node/
+    │   │   │       ├── RetrievalNode.java
+    │   │   │       ├── GenerationNode.java
+    │   │   │       ├── EvaluationNode.java
+    │   │   │       ├── RouterEdge.java
+    │   │   │       └── QueryRewriterNode.java
+    │   │   ├── ingestion/
+    │   │   │   ├── ChunkingService.java      # structure-aware / semantic chunking
+    │   │   │   ├── EmbeddingService.java     # embeds + L2-normalizes chunks
+    │   │   │   └── DocumentIngestController.java  # POST /api/ingest
+    │   │   ├── repository/
+    │   │   │   └── VectorRepository.java    # raw JDBC pgvector queries
+    │   │   ├── client/
+    │   │   │   └── GeminiClient.java        # generate / evaluate / embed
+    │   │   ├── dto/
+    │   │   │   ├── QueryRequest.java
+    │   │   │   ├── QueryResponse.java
+    │   │   │   ├── EvaluationResult.java
+    │   │   │   └── ChunkDto.java
+    │   │   ├── config/
+    │   │   │   ├── DataSourceConfig.java
+    │   │   │   └── GeminiConfig.java
+    │   │   └── exception/
+    │   │       ├── GlobalExceptionHandler.java
+    │   │       ├── DocumentEmptyException.java
+    │   │       ├── EmbeddingFailedException.java
+    │   │       └── ModelUnavailableException.java
+    │   └── resources/
+    │       ├── application.properties
+    │       └── db/migration/
+    │           └── V1__init_schema.sql       # table + vector_ip_ops index DDL
+    └── test/
+        └── java/com/forgerag/
+            ├── agent/node/
+            │   ├── RetrievalNodeTest.java
+            │   ├── EvaluationNodeTest.java
+            │   └── AgentGraphIntegrationTest.java  # tests the full retry loop
+            └── ingestion/ChunkingServiceTest.java
 ```
 
 ---
@@ -186,6 +217,7 @@ forgerag/
 - Java 17+
 - Maven 3.9+
 - PostgreSQL 15+ with the `pgvector` extension enabled
+- Node.js 18+ and npm (for the frontend)
 - A Gemini API key ([get one here](https://ai.google.dev/gemini-api/docs/api-key))
 
 ### 1. Clone & configure
@@ -193,7 +225,8 @@ forgerag/
 ```bash
 git clone <your-repo-url>
 cd forgerag
-cp src/main/resources/application.properties.example src/main/resources/application.properties
+cp .env.example .env
+# Edit .env and fill in GEMINI_API_KEY, DB_USER, DB_PASSWORD
 ```
 
 ### 2. Enable pgvector and create the schema
@@ -202,15 +235,21 @@ cp src/main/resources/application.properties.example src/main/resources/applicat
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Apply the Flyway migration in `src/main/resources/db/migration/V1__init_schema.sql`, which creates the vector column and the `vector_ip_ops` Inner Product index.
+Apply the Flyway migration in `src/main/resources/db/migration/V1__init_schema.sql`, which creates the vector column and the `vector_ip_ops` Inner Product index. Flyway runs this automatically on startup.
 
-### 3. Set your API key
+### 3. Set your environment variables
+
+Edit the `.env` file (or export variables directly):
 
 ```bash
 export GEMINI_API_KEY=your_key_here
+export DB_URL=jdbc:postgresql://localhost:5432/forgerag
+export DB_USER=forgerag
+export DB_PASSWORD=forgerag
+export CORS_ALLOWED_ORIGIN=http://localhost:5173
 ```
 
-### 4. Build and run
+### 4. Build and run the backend
 
 ```bash
 mvn clean install
@@ -219,23 +258,38 @@ mvn spring-boot:run
 
 The API will be available at `http://localhost:8080`.
 
+### 5. Run the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The UI will be available at `http://localhost:5173`.
+
 ---
 
 ## Configuration
 
-Key properties in `application.properties`:
+Key properties in `application.properties` (values resolved from environment variables):
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/forgerag
+spring.datasource.url=${DB_URL}
 spring.datasource.username=${DB_USER}
 spring.datasource.password=${DB_PASSWORD}
 
 gemini.api.key=${GEMINI_API_KEY}
-gemini.model.generator=gemini-2.5-flash
-gemini.model.evaluator=gemini-2.5-flash
+gemini.model.generator=gemini-3.8-flash
+gemini.model.evaluator=gemini-3.8-flash
+gemini.model.embedding=gemini-embedding-001
 
 forgerag.agent.max-retries=3
+
+cors.allowed-origin=${CORS_ALLOWED_ORIGIN:http://localhost:5173}
 ```
+
+See [`.env.example`](./.env.example) for the full list of required environment variables.
 
 ---
 
@@ -250,7 +304,7 @@ forgerag.agent.max-retries=3
 }
 ```
 
-**Response:**
+**Response — 200 OK (grounded answer):**
 ```json
 {
   "answer": "Revenue grew 12% quarter-over-quarter, driven primarily by...",
@@ -263,11 +317,80 @@ forgerag.agent.max-retries=3
 }
 ```
 
-If the retry limit is exhausted without producing a grounded answer, the API returns a `422` with the last evaluation verdict instead of silently returning an unverified answer.
+**Response — 422 Unprocessable Entity (retry limit exhausted or empty knowledge base):**
+```json
+{
+  "answer": null,
+  "grounded": false,
+  "retryCount": 3,
+  "evaluation": {
+    "verdict": "HALLUCINATED",
+    "reasoning": "Claim about Q3 margins is not supported by any retrieved chunk."
+  }
+}
+```
+
+If the retry limit is exhausted without producing a grounded answer, the API returns `422` with the last evaluation verdict — it never silently returns an unverified answer. If the knowledge base is empty, a `422` with verdict `NO_CONTEXT` is returned immediately.
+
+**Error responses:**
+
+| Status | `error` key | Trigger |
+|---|---|---|
+| `400` | `QUERY_REQUIRED` | Missing or blank `query` field |
+| `422` | `NO_CONTEXT` | Knowledge base is empty |
+| `502` | `MODEL_UNAVAILABLE` | Gemini API unreachable or errored |
+| `502` | `EMBEDDING_FAILED` | Embedding call failed during ingestion |
+| `500` | `INTERNAL_ERROR` | Unexpected server error |
+
+---
 
 ### `POST /api/ingest`
 
-Uploads and ingests a document: chunks it using structure-aware/semantic chunking, embeds and normalizes the chunks, and stores them in pgvector.
+Accepts raw document text (`Content-Type: text/plain`), chunks it using structure-aware/semantic chunking, embeds and L2-normalizes each chunk, and stores it in pgvector.
+
+**Request:** plain text body (the document content)
+
+**Response — 200 OK:**
+```json
+{
+  "status": "ingested",
+  "chunksCreated": 14,
+  "chunksStored": 14,
+  "chunksFailed": 0,
+  "sourceDoc": "manual-upload"
+}
+```
+
+**Error responses:** `400 DOCUMENT_EMPTY` if body is blank; `502 EMBEDDING_FAILED` if all chunks fail to embed.
+
+---
+
+### `GET /api/chunks`
+
+Lists recently ingested chunks. Used by the frontend Ingest view.
+
+**Query params:** `?limit=N` (optional, default `20`, max `100`)
+
+**Response — 200 OK:**
+```json
+{
+  "chunks": [
+    {
+      "id": 1,
+      "content": "...",
+      "sourceDoc": "manual-upload"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/health`
+
+Simple liveness check.
+
+**Response — 200 OK:** `OK`
 
 ---
 
@@ -277,6 +400,8 @@ Uploads and ingests a document: chunks it using structure-aware/semantic chunkin
 - **Structure-aware chunking, not fixed-size splitting** — preserves headers, sections, and paragraph hierarchy so retrieved context isn't semantically decapitated mid-sentence or mid-clause.
 - **Single `AgentState` object** — every node reads from and writes to one shared state object, keeping the graph's data flow explicit and easy to reason about (and test) as it grows.
 - **LLM-as-Judge for evaluation** — rather than a separate fine-tuned classifier, the Evaluator uses the same model family (Gemini) with a strict grounding-check prompt, keeping the system simpler to maintain for a mini-project scope while still providing an explicit verdict + reasoning trail.
+- **Separate generator and evaluator model instances** — the generator runs at `temperature=0.2` for fluent output; the evaluator runs at `temperature=0.0` for deterministic grounding verdicts.
+- **Fast-fail on empty knowledge base** — `QueryController` checks `VectorRepository.countAll()` before running the agent loop and returns a `422 NO_CONTEXT` immediately, rather than running the full LangGraph4j pipeline against empty context.
 
 ---
 

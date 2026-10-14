@@ -14,13 +14,13 @@ public class GeminiConfig {
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    @Value("${gemini.model.generator:gemini-2.5-flash}")
+    @Value("${gemini.model.generator:gemini-3.8-flash}")
     private String generatorModel;
 
-    @Value("${gemini.model.evaluator:gemini-2.5-flash}")
+    @Value("${gemini.model.evaluator:gemini-3.8-flash}")
     private String evaluatorModel;
 
-    @Value("${gemini.model.embedding:text-embedding-004}")
+    @Value("${gemini.model.embedding:gemini-embedding-001}")
     private String embeddingModel;
 
     public String getApiKey() { return apiKey; }

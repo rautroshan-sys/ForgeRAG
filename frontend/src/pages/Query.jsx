@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { runQuery } from '../api/client'
 import VerdictBadge from '../components/VerdictBadge'
 import SequenceTrace from '../components/SequenceTrace'
+import { appendHistory } from './History'
 
 // Stage sequence during a live query (drives SequenceTrace animation)
 const STAGE_SEQUENCE = ['retrieving', 'generating', 'evaluating', 'routing']
@@ -47,6 +48,16 @@ export default function Query() {
         }
         setStage(finalStage)
         setResult({ data, status })
+        // Record to session history
+        appendHistory({
+          query: queryText.trim(),
+          answer: data.answer ?? null,
+          grounded: data.grounded ?? false,
+          retryCount: data.retryCount ?? 0,
+          evaluation: data.evaluation ?? null,
+          status,
+          timestamp: new Date().toISOString(),
+        })
       } else {
         setStage('idle')
         setError(data?.message || 'An unexpected error occurred.')

@@ -111,10 +111,10 @@ export default function Ingest() {
           <div className="card-elevated">
             <h3 className="text-sm font-semibold text-ink mb-2">Chunking Rules</h3>
             <ul className="text-sm text-muted space-y-2 list-disc list-inside marker:text-brand/50">
-              <li>Splits on double newlines (paragraphs).</li>
-              <li>Merges short paragraphs up to 1000 chars.</li>
-              <li>Prevents splitting mid-sentence.</li>
-              <li>Calculates L2-normalized Gemini embeddings.</li>
+              <li>Splits on Markdown headings and double newlines (paragraphs).</li>
+              <li>Merges short paragraphs up to 1,500 chars per chunk.</li>
+              <li>Carries the nearest heading prefix into every chunk so context is preserved.</li>
+              <li>Calculates L2-normalized Gemini embeddings (gemini-embedding-001, 3072 dims).</li>
             </ul>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function Ingest() {
                     <span className="font-mono">ID: {chunk.id}</span>
                   </div>
                   <p className="text-sm text-ink leading-relaxed line-clamp-4">
-                    {chunk.text}
+                    {chunk.content}
                   </p>
                 </div>
               ))
