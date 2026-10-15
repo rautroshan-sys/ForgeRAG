@@ -5,6 +5,7 @@ import com.forgerag.ingestion.EmbeddingService;
 import com.forgerag.repository.VectorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -12,14 +13,23 @@ import java.util.List;
 /**
  * Retrieval Node — executes Inner Product search over document_chunks.
  *
- * Embeds the current AgentState.query (which may be rewritten on retries)
- * and retrieves the top-5 most similar chunks. Updates AgentState.retrievedContext.
+ * Also measures the top similarity score and sets AgentState.retrievalConfident
+ * so the RouterEdge can decide whether to fall back to web search (CRAG).
+ *
+ * Threshold config: forgerag.retrieval.confidence-threshold (default -0.40)
+ * pgvector negates IP for ordering, so scores are negative:
+ *   -0.05  =  very high similarity  (confident)
+ *   -0.40  =  moderate / borderline  (threshold)
+ *   -0.80  =  low similarity         (fallback to web search)
  */
 @Component
 public class RetrievalNode {
 
     private static final Logger log = LoggerFactory.getLogger(RetrievalNode.class);
     private static final int TOP_K = 5;
+
+    @Value("${forgerag.retrieval.confidence-threshold:-0.40}")
+    private float confidenceThreshold;
 
     private final EmbeddingService embeddingService;
     private final VectorRepository vectorRepository;
@@ -34,6 +44,13 @@ public class RetrievalNode {
         float[] queryEmbedding = embeddingService.embed(state.getQuery());
         List<String> chunks = vectorRepository.findSimilar(queryEmbedding, TOP_K);
         state.setRetrievedContext(chunks);
-        log.debug("RetrievalNode retrieved {} chunks", chunks.size());
+
+        // Measure confidence: is the best matching chunk close enough?
+        float bestScore = vectorRepository.findBestScore(queryEmbedding);
+        boolean confident = !chunks.isEmpty() && bestScore > confidenceThreshold;
+        state.setRetrievalConfident(confident);
+
+        log.info("RetrievalNode retrieved {} chunks, bestScore={}, confident={}",
+                chunks.size(), bestScore, confident);
     }
 }

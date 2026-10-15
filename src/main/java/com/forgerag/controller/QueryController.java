@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * POST /api/query — the main entry point for the agentic RAG loop.
  *
@@ -46,7 +48,7 @@ public class QueryController {
                 "NO_CONTEXT",
                 "The knowledge base is empty. Please ingest documents before querying."
             );
-            QueryResponse response = new QueryResponse(null, false, 0, emptyEval);
+            QueryResponse response = new QueryResponse(null, false, 0, emptyEval, false, List.of());
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
         }
 
@@ -62,7 +64,9 @@ public class QueryController {
                     finalState.getDraftAnswer(),
                     true,
                     finalState.getRetryCount(),
-                    evaluation
+                    evaluation,
+                    finalState.isWebSearchUsed(),
+                    finalState.getWebSearchSources()
             );
             return ResponseEntity.ok(response);
         } else {
@@ -71,7 +75,9 @@ public class QueryController {
                     null,   // answer=null per API contract for ungrounded 422
                     false,
                     finalState.getRetryCount(),
-                    evaluation
+                    evaluation,
+                    finalState.isWebSearchUsed(),
+                    finalState.getWebSearchSources()
             );
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
         }

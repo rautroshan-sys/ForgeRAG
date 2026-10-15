@@ -7,25 +7,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Agent Graph — the cyclic state machine implementing the RAG loop.
+ * Agent Graph — the cyclic state machine implementing the CRAG loop.
  *
- * Architecture note: this implements the same logic documented in
- * ARCHITECTURE.md (Retrieval → Generation → Evaluation → Router →
- * [valid: output | hallucinated: QueryRewriter → loop back to Retrieval])
- * as a direct Spring service rather than via the LangGraph4j library.
+ * Loop:
+ *   1. Retrieve relevant chunks (embeds current query)
+ *   1a. Route: if retrieval confidence is low → WebSearchNode (CRAG fallback)
+ *   2. Generate a draft answer (from vector-DB context OR web-search context)
+ *   3. Evaluate the draft (LLM-as-judge)
+ *   4. Route:
+ *      - VALID     → return grounded AgentState
+ *      - RETRY     → rewrite query, increment retry count, loop back to step 1
+ *      - EXHAUSTED → return ungrounded AgentState (caller returns 422)
  *
- * Deviation from original architecture doc (logged in CURRENT_STATE.md):
- * LangGraph4j was evaluated but its 1.9.x StateGraph API requires a
- * StateSchema/Channels descriptor that conflicts with our plain AgentState
- * POJO design, and adds no architectural value for a single-threaded demo
- * loop. The same cyclic state machine is implemented here with explicit
- * loop control, making the control flow MORE readable than a graph DSL
- * for this use case. The retry cap (forgerag.agent.max-retries) is
- * enforced in both cases.
- *
- * The five logical nodes remain as separate @Component classes:
- * RetrievalNode, GenerationNode, EvaluationNode, RouterEdge, QueryRewriterNode.
- * This class wires them together and enforces the retry cap.
+ * @param query the user's original question
+ * @return final AgentState — caller checks isGrounded(), isWebSearchUsed(), getWebSearchSources()
  */
 @Service
 public class AgentGraphConfig {
@@ -36,34 +31,38 @@ public class AgentGraphConfig {
     private int maxRetries;
 
     private final RetrievalNode retrievalNode;
+    private final WebSearchNode webSearchNode;
     private final GenerationNode generationNode;
     private final EvaluationNode evaluationNode;
     private final QueryRewriterNode queryRewriterNode;
 
     public AgentGraphConfig(RetrievalNode retrievalNode,
+                            WebSearchNode webSearchNode,
                             GenerationNode generationNode,
                             EvaluationNode evaluationNode,
                             QueryRewriterNode queryRewriterNode) {
         this.retrievalNode = retrievalNode;
+        this.webSearchNode = webSearchNode;
         this.generationNode = generationNode;
         this.evaluationNode = evaluationNode;
         this.queryRewriterNode = queryRewriterNode;
     }
 
     /**
-     * Runs the full agentic RAG loop for a given query.
+     * Runs the full agentic CRAG loop for a given query.
      *
      * Loop:
-     *   1. Retrieve relevant chunks (embeds current query)
-     *   2. Generate a draft answer
-     *   3. Evaluate the draft (LLM-as-judge)
-     *   4. Route:
-     *      - VALID     → return grounded AgentState
-     *      - RETRY     → rewrite query, increment retry count, loop back to step 1
-     *      - EXHAUSTED → return ungrounded AgentState (caller returns 422)
+     *   1.  Retrieve relevant chunks (embeds current query, measures confidence score)
+     *   1a. CRAG route: if retrieval confidence is low → WebSearchNode (web fallback)
+     *   2.  Generate a draft answer (from vector-DB OR web-search context)
+     *   3.  Evaluate the draft (LLM-as-judge)
+     *   4.  Route:
+     *       - VALID     → return grounded AgentState
+     *       - RETRY     → rewrite query, increment retry count, loop back to step 1
+     *       - EXHAUSTED → return ungrounded AgentState (caller returns 422)
      *
      * @param query the user's original question
-     * @return final AgentState — caller checks isGrounded() and retryCount
+     * @return final AgentState — caller checks isGrounded(), isWebSearchUsed(), getWebSearchSources()
      */
     public AgentState run(String query) {
         AgentState state = new AgentState(query, maxRetries);
@@ -72,6 +71,11 @@ public class AgentGraphConfig {
         while (true) {
             // ── Step 1: Retrieve ──────────────────────────────────────────
             retrievalNode.execute(state);
+
+            // ── Step 1a: CRAG pre-generation confidence check ─────────────
+            if (RouterEdge.routeAfterRetrieval(state) == RouterEdge.Decision.WEB_SEARCH) {
+                webSearchNode.execute(state);
+            }
 
             // ── Step 2: Generate ─────────────────────────────────────────
             generationNode.execute(state);
@@ -84,7 +88,8 @@ public class AgentGraphConfig {
 
             switch (decision) {
                 case VALID -> {
-                    log.info("AgentGraph complete: grounded after {} retries", state.getRetryCount());
+                    log.info("AgentGraph complete: grounded after {} retries, webSearch={}",
+                             state.getRetryCount(), state.isWebSearchUsed());
                     return state;
                 }
                 case EXHAUSTED -> {
@@ -95,6 +100,11 @@ public class AgentGraphConfig {
                     // ── Step 5: Rewrite + loop ────────────────────────────
                     queryRewriterNode.execute(state);
                     // retryCount was incremented inside QueryRewriterNode
+                }
+                default -> {
+                    // WEB_SEARCH handled pre-generation above; should not reach here
+                    log.warn("Unexpected router decision {} — treating as EXHAUSTED", decision);
+                    return state;
                 }
             }
         }

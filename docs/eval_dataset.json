@@ -1,0 +1,54 @@
+[
+  {
+    "id": "eval-001",
+    "query": "How can someone get into Google?",
+    "answerable": true,
+    "expected_answer_points": [
+      "Application on careers.google.com focusing on 2-3 matching roles",
+      "Resume formatted with X-Y-Z formula",
+      "Recruiter screening & practical/technical assessment",
+      "Interview loop evaluating GCA, RRK, Leadership, and Googliness",
+      "Independent Hiring Committee review"
+    ],
+    "source_doc": "google_careers_data.txt"
+  },
+  {
+    "id": "eval-002",
+    "query": "What are Google's four core hiring attributes?",
+    "answerable": true,
+    "expected_answer_points": [
+      "General Cognitive Ability (GCA)",
+      "Role-Related Knowledge (RRK)",
+      "Leadership",
+      "Googliness"
+    ],
+    "source_doc": "google_careers_data.txt"
+  },
+  {
+    "id": "eval-003",
+    "query": "What formula does Google recommend for resume bullets?",
+    "answerable": true,
+    "expected_answer_points": [
+      "Accomplished [X] as measured by [Y], by doing [Z]"
+    ],
+    "source_doc": "google_careers_data.txt"
+  },
+  {
+    "id": "eval-004",
+    "query": "Who makes the final hiring decision at Google?",
+    "answerable": true,
+    "expected_answer_points": [
+      "Independent Hiring Committee (HC)",
+      "Decoupled from interviewers to eliminate bias"
+    ],
+    "source_doc": "google_careers_data.txt"
+  },
+  {
+    "id": "eval-005",
+    "query": "What is the exact stock grant vesting schedule for Google L6 software engineers in 2026?",
+    "answerable": false,
+    "expected_behavior": "Must state that the context does not contain this information rather than hallucinating",
+    "fallback_needed": true,
+    "fallback_type": "web_search"
+  }
+]

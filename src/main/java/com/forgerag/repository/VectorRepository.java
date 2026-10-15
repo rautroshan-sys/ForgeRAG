@@ -79,6 +79,31 @@ public class VectorRepository {
     }
 
     /**
+     * Returns the best (highest) Inner Product similarity score for the query.
+     * pgvector stores negated IP so the raw value is negative; a less-negative
+     * (i.e. higher) value means a closer match.
+     * Example: -0.05 is very similar, -0.80 is distant.
+     * Returns 0.0 when the table is empty.
+     */
+    public float findBestScore(float[] queryEmbedding) {
+        return jdbc.execute((Connection conn) -> {
+            PGvector.addVectorType(conn);
+            try (var ps = conn.prepareStatement(
+                    "SELECT embedding <#> ? AS score FROM document_chunks ORDER BY score ASC LIMIT 1")) {
+                ps.setObject(1, new PGvector(queryEmbedding));
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        float score = rs.getFloat("score");
+                        log.debug("findBestScore={}", score);
+                        return score;
+                    }
+                    return 0.0f;
+                }
+            }
+        });
+    }
+
+    /**
      * Returns the most recent chunks for the admin/ingest view (GET /api/chunks).
      */
     public List<ChunkDto> findRecent(int limit) {

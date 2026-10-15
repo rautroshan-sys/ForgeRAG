@@ -6,6 +6,7 @@ import { appendHistory } from './History'
 
 // Stage sequence during a live query (drives SequenceTrace animation)
 const STAGE_SEQUENCE = ['retrieving', 'generating', 'evaluating', 'routing']
+const STAGE_SEQUENCE_WEB = ['retrieving', 'websearching', 'generating', 'evaluating', 'routing']
 const STAGE_DELAY_MS = 900 // approximate per-stage advance
 
 export default function Query() {
@@ -40,6 +41,8 @@ export default function Query() {
 
       if (ok || status === 422) {
         // 200 = grounded, 422 = retry-exhausted — both have structured response
+        const webUsed = data.webSearchUsed ?? false
+        const stages = webUsed ? STAGE_SEQUENCE_WEB : STAGE_SEQUENCE
         const finalStage = data.grounded ? 'done' : 'failed'
         // If retries happened, briefly show 'rewriting' before final
         if (data.retryCount > 0) {
@@ -55,6 +58,8 @@ export default function Query() {
           grounded: data.grounded ?? false,
           retryCount: data.retryCount ?? 0,
           evaluation: data.evaluation ?? null,
+          webSearchUsed: webUsed,
+          webSearchSources: data.webSearchSources ?? [],
           status,
           timestamp: new Date().toISOString(),
         })
@@ -80,6 +85,8 @@ export default function Query() {
 
   const verdict = result?.data?.evaluation?.verdict || null
   const retryCount = result?.data?.retryCount ?? 0
+  const webSearchUsed = result?.data?.webSearchUsed ?? false
+  const webSearchSources = result?.data?.webSearchSources ?? []
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
@@ -185,7 +192,29 @@ export default function Query() {
 
         {/* ── Right: Pipeline trace ──────────────────────────────── */}
         <div className="space-y-4">
-          <SequenceTrace stage={stage} verdict={verdict} retryCount={retryCount} />
+          <SequenceTrace stage={stage} verdict={verdict} retryCount={retryCount} webSearchUsed={webSearchUsed} />
+
+          {/* Web Sources card */}
+          {webSearchUsed && webSearchSources.length > 0 && (
+            <div className="card animate-fade-in">
+              <p className="text-xs font-semibold text-ink mb-2">🌐 Web Sources</p>
+              <ul className="space-y-1">
+                {webSearchSources.map((src, i) => (
+                  <li key={i}>
+                    <a
+                      href={src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-400 hover:text-blue-300 truncate block transition-colors"
+                      title={src}
+                    >
+                      {new URL(src).hostname}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Explainer */}
           {stage === 'idle' && (

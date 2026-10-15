@@ -1,0 +1,35 @@
+# Google Hiring Process and Career Guide
+
+## Overview of Google's Hiring Philosophy
+Google's hiring process is structured to be equitable, comprehensive, and objective. It focuses on evaluating candidate abilities across four standardized core attributes rather than pedigree, school background, or previous company prestige:
+1. General Cognitive Ability (GCA): Problem-solving skills, curiosity, and ability to learn complex concepts quickly.
+2. Role-Related Knowledge (RRK): Skills, technical depth, and practical experience needed to succeed in the specific domain.
+3. Leadership: Emergent leadership; the ability to step in and lead during ambiguity and step back when collaboration requires following.
+4. Googliness: Thriving in ambiguity, doing the right thing, valuing diversity, collaborative mindset, and intellectual humility.
+
+## Stage 1: Exploration and Application
+Candidates begin by researching roles on the official Google Careers portal (careers.google.com). 
+Key guidelines for applications:
+- Job matching: Candidates should focus on 2-3 roles that closely match their experience rather than mass applying.
+- Resume structuring: Resumes should emphasize measurable impact using the Google X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]".
+- Referrals: Having an internal referral from a current Googler can help surface the resume to recruiters, though candidates still undergo the identical evaluation process.
+
+## Stage 2: Initial Screenings
+Once a resume passes screening, the initial phase involves:
+- Recruiter Phone Screen: A 30-minute conversation reviewing background, motivations, compensation expectations, and role alignment.
+- Technical / Practical Assessment:
+  - For Software Engineering (SWE): A 45-minute technical phone interview or virtual coding session on Google Docs or an online code editor focusing on data structures, algorithms, and complexity analysis (Big-O).
+  - For Non-Engineering roles: A functional screen covering scenario-based questions and role competencies.
+
+## Stage 3: Onsite / Full Virtual Loop
+Candidates who pass initial screens are invited to the full interview loop (typically 4 to 5 rounds, 45 minutes each):
+- Coding & Data Structures (SWE): 2 to 3 interviews evaluating coding efficiency, edge-case handling, and algorithmic problem-solving.
+- System Design (L5+ / Senior SWE): Architectural design of distributed, highly scalable systems.
+- Googliness & Leadership (G&L): Behavioral questions using the STAR framework (Situation, Task, Action, Result) assessing collaboration, handling conflict, ethics, and leadership.
+
+## Stage 4: Independent Hiring Committee and Review
+Google decouples interviewers from hiring decisions to eliminate interviewer bias:
+- Interview Packet Compilation: Transcripts, notes, and rubric scores from all interviewers are compiled into an interview packet.
+- Independent Hiring Committee (HC): A committee of experienced Googlers who did not interview the candidate reviews the packet and votes on whether to recommend an offer.
+- Team Matching: For generalist pipelines, candidates are matched with specific teams with open headcount.
+- Executive / Compensation Review: Final compensation approval before an official written offer is extended.
